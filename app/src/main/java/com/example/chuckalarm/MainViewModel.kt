@@ -29,6 +29,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val PREFERENCES_Key_AlarmTimeCalendarMinute = "AlarmTimeCalendarMinute"
     val PREFERENCES_Key_AlarmTimeCalendarHour = "AlarmTimeCalendarHour"
     val PREFERENCES_Key_IsAlarmActual = "IsAlarmActual"
+    val PREFERENCES_Key_IsCDTActual = "IsCDTActual"
     val PREFERENCES_Key_IsAlarmActualRep = "IsAlarmActualRep"
     val PREFERENCES_Key_IsAlarmActualPn = "IsAlarmActualPn"
     val PREFERENCES_Key_IsAlarmActualVt = "IsAlarmActualVt"
@@ -120,15 +121,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun mAlarmOff(
         alarmManagerMain: AlarmManager,
         editor: SharedPreferences.Editor,
-        context: Context,
+        context: Context,prefCalendar: SharedPreferences
     ) {
+        stopTimer(prefCalendar)
         alarmOff(alarmManagerMain,
             editor,
             getAlarmActionPendingIntent(context),
             getAlarmInfoPendingIntent(context),
             getAlarmActionRepeatPendingIntent(context),
             PREFERENCES_Key_IsAlarmActual)
-        stopTimer()
+
     }
 
     fun mAlarmShouldBeTomorrowCheck(
@@ -161,10 +163,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         prefCalendar: SharedPreferences,
         alarmManagerMain: AlarmManager,context: Context
     ) {
-        stopTimer()
+
         liveDataIsTpOk.value=false
         materialTimepickerBuild()
         materialTimepicker?.addOnPositiveButtonClickListener {
+            stopTimer(prefCalendar)
             setCalendarFromTP()
             editPrefFromCalendar(editor, calendar)
 
@@ -226,8 +229,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
 
     }
-    fun stopTimer() {
-        if(countDownTimer!=null)
+    fun stopTimer(prefCalendar: SharedPreferences) {
+       if(prefCalendar.getBoolean(PREFERENCES_Key_IsAlarmActual,false))
         countDownTimer.cancel()
 
     }

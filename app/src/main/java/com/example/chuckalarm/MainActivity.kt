@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     val PREFERENCES_Key_AlarmTimeCalendarTimeInMillis = "AlarmTimeCalendarTimeInMillis"
     val PREFERENCES_Key_AlarmTimeCalendarTime = "AlarmTimeCalendarTime"
     val PREFERENCES_Key_IsAlarmActual = "IsAlarmActual"
+    val PREFERENCES_Key_IsFirstInclusion = "IsFirstInclusion"
     val PREFERENCES_Key_IsAlarmActualSD = "IsAlarmActualSD"
 
 
@@ -48,17 +49,21 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         prefCalendar = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE);
         val editor: SharedPreferences.Editor = prefCalendar!!.edit()
-        if (prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
-                Long.MIN_VALUE) == Long.MIN_VALUE
-        ) {
-            editor.putLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
-                System.currentTimeMillis())
+//        if (prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
+//                Long.MIN_VALUE) == Long.MIN_VALUE
+//        ) {
+//            editor.putLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
+//                System.currentTimeMillis())
+//            editor.apply()
+//            Log.d("s",(prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
+//                0).toString()))
+//        }
+        if(prefCalendar!!.getBoolean(PREFERENCES_Key_IsFirstInclusion,true)){
+            editor.putLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,System.currentTimeMillis())
+            editor.putBoolean(PREFERENCES_Key_IsFirstInclusion,false)
             editor.apply()
         }
-//        if (prefCalendar!!.getBoolean(PREFERENCES_Key_IsAlarmActual, false)){
-//            vm.startTimer(prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
-//                Long.MIN_VALUE) - System.currentTimeMillis())
-//        }
+
 
         vm.ldInterval.observe(this) {
             binding.tvIsAktualeInterval.setText("сработает через ${
@@ -91,10 +96,10 @@ class MainActivity : AppCompatActivity() {
             val alertDialog: AlertDialog = AlertDialog.Builder(this@MainActivity).create()
 
             // Указываем Title
-            alertDialog.setTitle("Информационое сообщение")
+            alertDialog.setTitle("Срабатывать поверх других окон")
 
             // Указываем текст сообщение
-            alertDialog.setMessage("Welcome to devcolibri.com")
+            alertDialog.setMessage("для хорошей работы будильника нужно в настройках приложения разрешить ему срабатывать даже если экран выключен или открыты другие приложения.Для этого нажмите OK и передвиньте ползунок вправо.")
 
             // задаем иконку
             alertDialog.setIcon(R.drawable.alert_dark_frame)
@@ -111,7 +116,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.switchOFOnAlarm.setOnClickListener {
             if (!binding.switchOFOnAlarm.isChecked) {
-                vm.mAlarmOff(alarmManagerMain, editor, this)
+                vm.mAlarmOff(alarmManagerMain, editor, this, prefCalendar!!)
                 // vm.stopTimer()
                 binding.tvIsAktualeInterval.setText("не активен")
                 // vm.liveDataIsTpOk.value=false
@@ -187,9 +192,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        vm.stopTimer()
+        prefCalendar?.let { vm.stopTimer(it) }
     }
-// для комита
+
     override fun onResume() {
         super.onResume()
         binding.switchOFOnAlarm.isChecked =
