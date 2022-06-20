@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="MySwitch" parent="Theme.AppCompat.Light">
+        <item name="trackTint">#FFFF00</item>
+        <!-- Неактивное состояние -->
+        <item name="colorSwitchThumbNormal">#FDCBDC</item>
+        <!-- Активное состояние -->
+        <item name="colorControlActivated">#FF4081</item>
+    </style>
+    <style name="MySwitch2" parent="Theme.AppCompat.Light">
+        <item name="trackTint">#FFFF00</item>
+        <!-- Неактивное состояние -->
+        <item name="colorSwitchThumbNormal">#B4E8FF</item>
+        <!-- Активное состояние -->
+        <item name="colorControlActivated">#448AFF</item>
+    </style>
+</resources>
