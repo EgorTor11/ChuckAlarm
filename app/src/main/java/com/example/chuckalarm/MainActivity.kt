@@ -7,8 +7,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import com.example.chuckalarm.databinding.ActivityMainBinding
-import com.google.android.material.timepicker.MaterialTimePicker
-import com.google.android.material.timepicker.TimeFormat
 import okhttp3.*
 import java.util.*
 import android.R
@@ -19,6 +17,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import android.content.SharedPreferences
 import android.view.View
+import android.widget.CompoundButton
 import androidx.activity.viewModels
 import java.text.SimpleDateFormat
 
@@ -36,9 +35,11 @@ class MainActivity : AppCompatActivity() {
     val PREFERENCES_Key_IsAlarmActual = "IsAlarmActual"
     val PREFERENCES_Key_IsFirstInclusion = "IsFirstInclusion"
     val PREFERENCES_Key_IsAlarmActualSD = "IsAlarmActualSD"
+    val PREFERENCES_Key_IsUserClick = "IsUserClick"
 
 
     var prefCalendar: SharedPreferences? = null
+    var editor: SharedPreferences.Editor? = null
     var format = SimpleDateFormat("HH:mm")
     var formatCDT = SimpleDateFormat("HH:mm:ss")
 
@@ -48,20 +49,13 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         prefCalendar = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE);
-        val editor: SharedPreferences.Editor = prefCalendar!!.edit()
-//        if (prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
-//                Long.MIN_VALUE) == Long.MIN_VALUE
-//        ) {
-//            editor.putLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
-//                System.currentTimeMillis())
-//            editor.apply()
-//            Log.d("s",(prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
-//                0).toString()))
-//        }
-        if(prefCalendar!!.getBoolean(PREFERENCES_Key_IsFirstInclusion,true)){
-            editor.putLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,System.currentTimeMillis())
-            editor.putBoolean(PREFERENCES_Key_IsFirstInclusion,false)
-            editor.apply()
+         editor = prefCalendar!!.edit()
+
+        if (prefCalendar!!.getBoolean(PREFERENCES_Key_IsFirstInclusion, true)) {
+            editor!!.putLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
+                System.currentTimeMillis())
+            editor!!.putBoolean(PREFERENCES_Key_IsFirstInclusion, false)
+            editor!!.apply()
         }
 
 
@@ -73,15 +67,16 @@ class MainActivity : AppCompatActivity() {
                     "${(vm.ldInterval.value)?.rem((60000))?.div(1000)} секунд")
         }
 
-        binding.tvAlarmTime.setText(mTime(editor))
+        binding.tvAlarmTime.setText(mTime(editor!!))
 
         vm.liveDataIsTpOk.observe(this) {
             if (it) {
-                binding.tvAlarmTime.setText(mTime(editor))
+                binding.tvAlarmTime.setText(mTime(editor!!))
                 // vm.stopTimer()
                 //  vm.startTimer(prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,System.currentTimeMillis())-System.currentTimeMillis())
                 binding.switchOFOnAlarm.isChecked = true
                 //   binding.tvIsAktualeInterval.setText("сработает через ${}")
+                // vm.liveDataIsTpOk.value=false
             }
         }
 
@@ -114,26 +109,34 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        binding.switchOFOnAlarm.setOnClickListener {
-            if (!binding.switchOFOnAlarm.isChecked) {
-                vm.mAlarmOff(alarmManagerMain, editor, this, prefCalendar!!)
-                // vm.stopTimer()
-                binding.tvIsAktualeInterval.setText("не активен")
-                // vm.liveDataIsTpOk.value=false
-            } else {
-                vm.mAlarmShouldBeTomorrowCheck(editor,
-                    PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
-                    prefCalendar!!)
-                vm.mAlarmOn(alarmManagerMain, prefCalendar!!, editor, this)
-                // vm.startTimer(prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,0)-System.currentTimeMillis())
-                // vm.liveDataIsTpOk.value=false
-                //binding.tvIsAktualeInterval.setText("сработает через")
+
+        binding.switchOFOnAlarm.setOnCheckedChangeListener { compoundButton: CompoundButton, b: Boolean ->
+
+            Log.d("stopTimer","setOnChecked  IsNotUserClick= ${prefCalendar!!.getBoolean(PREFERENCES_Key_IsUserClick,false)} ")
+
+                if (!binding.switchOFOnAlarm.isChecked) {
+                    vm.mAlarmOff(alarmManagerMain, editor!!, this, prefCalendar!!)
+                    // vm.stopTimer()
+                    binding.tvIsAktualeInterval.setText("не активен")
+                    // vm.liveDataIsTpOk.value=false
+                    Log.d("OnChecked", "слушатель сработал И выключил будильник!")
+                } else {
+                    if (!prefCalendar!!.getBoolean(PREFERENCES_Key_IsAlarmActual,false)){
+                    vm.mAlarmShouldBeTomorrowCheck(editor!!,
+                        PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
+                        prefCalendar!!)
+                    vm.mAlarmOn(alarmManagerMain, prefCalendar!!, editor!!, this)
+                    // vm.startTimer(prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,0)-System.currentTimeMillis())
+                    // vm.liveDataIsTpOk.value=false
+                    //binding.tvIsAktualeInterval.setText("сработает через")
+                    Log.d("OnChecked", "слушатель сработал!!!")
+                }
             }
 
         }
 
         binding.tvAlarmTime.setOnClickListener {
-            vm.alarmBuild(supportFragmentManager, editor, prefCalendar!!, alarmManagerMain, this)
+            vm.alarmBuild(supportFragmentManager, editor!!, prefCalendar!!, alarmManagerMain, this)
 
         }
 
@@ -200,6 +203,8 @@ class MainActivity : AppCompatActivity() {
         binding.switchOFOnAlarm.isChecked =
             prefCalendar!!.getBoolean(PREFERENCES_Key_IsAlarmActual, false)
         if (binding.switchOFOnAlarm.isChecked) {
+            editor!!.putBoolean(PREFERENCES_Key_IsUserClick,false)
+            editor!!.apply()
             Toast.makeText(this, "Есть запущенный будильник", Toast.LENGTH_LONG).show()
             vm.startTimer(prefCalendar!!.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
                 Long.MIN_VALUE) - System.currentTimeMillis())

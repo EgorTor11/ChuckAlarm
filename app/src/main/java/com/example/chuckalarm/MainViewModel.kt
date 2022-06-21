@@ -20,24 +20,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var liveDataBulED = MutableLiveData<Boolean>()
     var liveDataBulSD = MutableLiveData<Boolean>()
     var liveDataIsTpOk = MutableLiveData<Boolean>()
-    var ldInterval= MutableLiveData<Long>()
+    var ldInterval = MutableLiveData<Long>()
 
-    var ldIsCDStarted= MutableLiveData<Boolean>()
-    val APP_PREFERENCES = "prefCalendar"
+
     val PREFERENCES_Key_AlarmTimeCalendarTimeInMillis = "AlarmTimeCalendarTimeInMillis"
     val PREFERENCES_Key_AlarmTimeCalendarTime = "AlarmTimeCalendarTime"
-    val PREFERENCES_Key_AlarmTimeCalendarMinute = "AlarmTimeCalendarMinute"
-    val PREFERENCES_Key_AlarmTimeCalendarHour = "AlarmTimeCalendarHour"
     val PREFERENCES_Key_IsAlarmActual = "IsAlarmActual"
-    val PREFERENCES_Key_IsCDTActual = "IsCDTActual"
-    val PREFERENCES_Key_IsAlarmActualRep = "IsAlarmActualRep"
-    val PREFERENCES_Key_IsAlarmActualPn = "IsAlarmActualPn"
-    val PREFERENCES_Key_IsAlarmActualVt = "IsAlarmActualVt"
-    val PREFERENCES_Key_IsAlarmActualSr = "IsAlarmActualSr"
-    val PREFERENCES_Key_IsAlarmActualCt = "IsAlarmActualCt"
-    val PREFERENCES_Key_IsAlarmActualPt = "IsAlarmActualPt"
-    val PREFERENCES_Key_IsAlarmActualSb = "IsAlarmActualSp"
-    val PREFERENCES_Key_IsAlarmActualVs = "IsAlarmActualVs"
+    val PREFERENCES_Key_IsUserClick = "IsUserClick"
+
+
     var format = SimpleDateFormat("HH:mm")
     lateinit var countDownTimer: CountDownTimer
     var calendar = Calendar.getInstance()
@@ -53,7 +44,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setCalendarFromTP() {
-        calendar.timeInMillis=System.currentTimeMillis()
+        calendar.timeInMillis = System.currentTimeMillis()
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         calendar.set(Calendar.MINUTE, materialTimepicker!!.minute)
@@ -89,6 +80,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         editor: SharedPreferences.Editor,
         context: Context,
     ) {
+
         alarmOn(alarmManagerMain,
             PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
             prefCalendar,
@@ -97,9 +89,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             getAlarmInfoPendingIntent(context),
             getAlarmActionRepeatPendingIntent(context),
             PREFERENCES_Key_IsAlarmActual)
-       // stopTimer()
-        startTimer(((prefCalendar.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,0)-System.currentTimeMillis())))
-        Log.d("sr","сработал")
+
+        startTimer(((prefCalendar.getLong(PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
+            0) - System.currentTimeMillis())))
+        Log.d("stopTimer", "mAlarmOn IsAlarmAktuale= ${prefCalendar.getBoolean(PREFERENCES_Key_IsAlarmActual,false)}   ")
     }
 
     fun alarmOff(
@@ -121,7 +114,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun mAlarmOff(
         alarmManagerMain: AlarmManager,
         editor: SharedPreferences.Editor,
-        context: Context,prefCalendar: SharedPreferences
+        context: Context, prefCalendar: SharedPreferences,
     ) {
         stopTimer(prefCalendar)
         alarmOff(alarmManagerMain,
@@ -130,7 +123,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             getAlarmInfoPendingIntent(context),
             getAlarmActionRepeatPendingIntent(context),
             PREFERENCES_Key_IsAlarmActual)
-
+Log.d("stopTimer","mAlarmOff IsAlarmAktuale= ${prefCalendar.getBoolean(PREFERENCES_Key_IsAlarmActual,false)}   ")
     }
 
     fun mAlarmShouldBeTomorrowCheck(
@@ -161,24 +154,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         editor: SharedPreferences.Editor,
         prefCalendar: SharedPreferences,
-        alarmManagerMain: AlarmManager,context: Context
+        alarmManagerMain: AlarmManager, context: Context,
     ) {
 
-        liveDataIsTpOk.value=false
+        liveDataIsTpOk.value = false
         materialTimepickerBuild()
         materialTimepicker?.addOnPositiveButtonClickListener {
             stopTimer(prefCalendar)
             setCalendarFromTP()
             editPrefFromCalendar(editor, calendar)
-
-            // binding.tvAlarmTime.setText(mTime())
-            mAlarmShouldBeTomorrowCheck(editor, PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
+            mAlarmShouldBeTomorrowCheck(editor,
+                PREFERENCES_Key_AlarmTimeCalendarTimeInMillis,
                 prefCalendar!!)
-            mAlarmOn(alarmManagerMain,prefCalendar,editor,context
-               ) //вкл.основной будильник
-            //  binding.switchOFOnAlarm.isChecked = true
+            mAlarmOn(alarmManagerMain, prefCalendar, editor, context) //вкл.основной будильник
 
-         liveDataIsTpOk.value=true
+            editor.putBoolean(PREFERENCES_Key_IsUserClick, false)
+            editor.apply()
+            liveDataIsTpOk.value = true
         }
         materialTimepicker?.show(fragmentManager, "tag_picker")
 
@@ -209,30 +201,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             alarmInfoIntent,
             PendingIntent.FLAG_UPDATE_CURRENT)
     }
+
     fun startTimer(timeSecond: Long) {
+        countDownTimer = object : CountDownTimer(timeSecond, 1) {
 
-        countDownTimer = object : CountDownTimer(timeSecond , 1) {
             override fun onTick(millisUntilFinished: Long) {
-
-                ldInterval.value = (millisUntilFinished )
-
+                ldInterval.value = (millisUntilFinished)
             }
 
-            override fun onFinish() {
-
-
-            //    ldIsCDStartedSD.value = true
-
-            }
-
+            override fun onFinish() {}
         }.start()
-
-
     }
-    fun stopTimer(prefCalendar: SharedPreferences) {
-       if(prefCalendar.getBoolean(PREFERENCES_Key_IsAlarmActual,false))
-        countDownTimer.cancel()
 
+    fun stopTimer(prefCalendar: SharedPreferences) {
+        if (prefCalendar.getBoolean(PREFERENCES_Key_IsAlarmActual, false)) {
+            countDownTimer.cancel()
+            Log.d("stopTimer", "stopTimer. ")
+        }
     }
 
 }
